@@ -2,152 +2,80 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>文学社随笔广场</title>
+  <title>文学社随笔平台</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
-    body{max-width:720px;margin:20px auto;padding:0 16px;background:#f7f8fa}
-    .box{background:white;padding:16px;border-radius:10px;margin:12px 0;border:1px solid #eee}
-    textarea{width:100%;min-height:100px;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px}
-    button{padding:8px 14px;border:none;border-radius:6px;background:#3b82f6;color:white;cursor:pointer;margin:4px;font-size:14px}
-    button.gray{background:#94a3b8}
-    .post-item{margin:18px 0}
-    .comment{margin:8px 0;padding:10px;background:#f8f9fb;border-radius:8px;font-size:14px}
-    .hide{display:none}
-    .tip{color:#666;font-size:13px;margin:6px 0}
-  </style>
 </head>
 <body>
-<div id="app">
-  <h2>文学社随笔广场</h2>
-  <div id="authArea" class="box">
-    <h4>登录 / 注册</h4>
-    <div>邮箱:<input type="email" id="email" placeholder="填写邮箱"></div>
-    <div style="margin:6px 0">密码:<input type="password" id="pwd" placeholder="设置密码"></div>
-    <button onclick="signUp()">注册账号</button>
-    <button onclick="signIn()">登录</button>
-    <button class="gray" onclick="signOut()">退出登录</button>
-    <div class="tip" id="userTip"></div>
-  </div>
+<h1>文学社随笔平台</h1>
 
-  <div id="writeArea" class="box hide">
-    <h4>发布随笔（默认匿名）</h4>
-    <textarea id="postContent" placeholder="写下你的文字..."></textarea>
-    <div class="tip"><input type="checkbox" id="anonCheck" checked> 匿名发布</div>
-    <button onclick="createPost()">提交发布</button>
+<div id="authArea">
+  <h3>注册 / 登录</h3>
+  <div>
+    邮箱：<input type="email" id="email" placeholder="填写邮箱">
   </div>
+  <div style="margin:8px 0;">
+    密码：<input type="password" id="pwd" placeholder="至少6位">
+  </div>
+  <button onclick="doRegister()">注册账号</button>
+  <button onclick="doLogin()">登录</button>
+</div>
 
-  <div id="postList"></div>
+<div id="mainArea" style="display:none;">
+  <h3>✅登录成功，可以发布随笔</h3>
+  <textarea id="articleInput" placeholder="写下你的文字..." rows="6" cols="60"></textarea>
+  <br>
+  <button onclick="postArticle()">发布匿名随笔</button>
+  <hr>
+  <h4>随笔列表</h4>
+  <div id="articleList"></div>
 </div>
 
 <script>
-// ============在这里填入你的Supabase信息============
+// ============填入你的Supabase信息============
 const SUPABASE_URL = "https://seranmtxkwjawpsvbhzh.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_q5by4Lr66W6CgPpitMe-VQ_b9_j_IUW";
-// =================================================
 
 const { createClient } = window.supabase;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser = null;
-
-const authArea = document.getElementById('authArea');
-const writeArea = document.getElementById('writeArea');
-const userTip = document.getElementById('userTip');
-const postList = document.getElementById('postList');
-
-// 监听登录状态
-supabase.auth.onAuthStateChange((event,session)=>{
-  if(session?.user){
-    currentUser = session.user;
-    userTip.innerText = "已登录："+session.user.email;
-    writeArea.classList.remove('hide');
+// 注册
+async function doRegister(){
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('pwd').value;
+  alert("正在提交注册，请等待");
+  const {data,error}=await supabase.auth.signUp({email,password});
+  if(error){
+    alert("注册失败："+error.message);
   }else{
-    currentUser=null;
-    userTip.innerText="未登录，请注册或登录";
-    writeArea.classList.add('hide');
+    alert("注册请求完成，请前往邮箱验证");
   }
-  renderPosts();
-})
-
-async function signUp(){
-  const email=document.getElementById('email').value.trim();
-  const password=document.getElementById('pwd').value;
-  await supabase.auth.signUp({email,password});
-  alert("注册完成，如果开启邮箱验证，请去邮箱收邮件激活");
-}
-async function signIn(){
-  const email=document.getElementById('email').value.trim();
-  const password=document.getElementById('pwd').value;
-  await supabase.auth.signInWithPassword({email,password});
-}
-async function signOut(){
-  await supabase.auth.signOut();
 }
 
-// 发帖子
-async function createPost(){
-  if(!currentUser)return alert("请先登录");
-  const content = document.getElementById('postContent').value.trim();
-  const anon = document.getElementById('anonCheck').checked;
-  if(!content)return alert("内容不能为空");
-  await supabase.from('posts').insert([{
-    content:content,
-    is_anonymous:anon,
-    user_id:currentUser.id
-  }])
-  document.getElementById('postContent').value='';
-  renderPosts();
+// 登录
+async function doLogin(){
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('pwd').value;
+  alert("正在登录，请等待");
+  const {data,error}=await supabase.auth.signInWithPassword({email,password});
+  if(error){
+    alert("登录失败："+error.message);
+  }else{
+    alert("登录成功！");
+    document.getElementById('authArea').style.display='none';
+    document.getElementById('mainArea').style.display='block';
+  }
 }
 
-// 发布评论
-window.createComment = async function(postId){
-  const c = prompt("写下你的评论：");
-  if(!c?.trim())return;
-  await supabase.from('comments').insert([{
-    post_id:postId,
-    content:c.trim(),
-    is_anonymous:true,
-    user_id:currentUser.id
-  }])
-  renderPosts();
+//发布随笔
+async function postArticle(){
+  const content=document.getElementById('articleInput').value;
+  const {error}=await supabase.from('posts').insert([{content:content,anonymous:true}]);
+  if(error){
+    alert("发布失败："+error.message);
+  }else{
+    alert("发布成功！刷新页面查看");
+  }
 }
-
-// 渲染全部帖子+评论
-async function renderPosts(){
-  postList.innerHTML="";
-  const {data:posts} = await supabase.from('posts').select('*').order('created_at',{ascending:false});
-  const {data:allComments} = await supabase.from('comments').select('*');
-
-  posts.forEach(post=>{
-    const html = document.createElement('div');
-    html.className="box post-item";
-    const showAuthor = post.is_anonymous ? "匿名作者" : "公开作者";
-    html.innerHTML = `
-      <div><b>${showAuthor}</b> · ${new Date(post.created_at).toLocaleString()}</div>
-      <div style="margin:10px 0;white-space:pre-wrap">${escapeHtml(post.content)}</div>
-      <button onclick="createComment('${post.id}')">写评论</button>
-      <div class="commentWrap"></div>
-    `
-    // 挂载评论
-    const wrap = html.querySelector('.commentWrap');
-    allComments.filter(c=>c.post_id===post.id).forEach(cm=>{
-      const div = document.createElement('div');
-      div.className="comment";
-      div.innerHTML = `<span>匿名评论</span>：${escapeHtml(cm.content)}`;
-      wrap.appendChild(div);
-    })
-    postList.appendChild(html);
-  })
-}
-
-function escapeHtml(str){
-  return str.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
-}
-
-// 页面加载立刻拉取内容
-renderPosts();
 </script>
 </body>
 </html>
